@@ -1,5 +1,5 @@
 /*********************************
- * CONFIGURAÇÃO PDF.JS (VERSÃO 2)
+ * CONFIGURAÇÃO PDF.JS
  *********************************/
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
@@ -9,7 +9,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
  *********************************/
 let usuarioLogado = "";
 let vendas = [];
-let catalogo = {};
+
+// ⚠️ NÃO declaramos catalogo aqui
+// ele já vem do catalogo.js
 
 /*********************************
  * LOGIN
@@ -39,7 +41,6 @@ async function importarPDF() {
 
   reader.onload = async function () {
     const typedarray = new Uint8Array(this.result);
-
     const pdf = await pdfjsLib.getDocument(typedarray).promise;
 
     let blocos = [];
@@ -62,14 +63,14 @@ async function importarPDF() {
 }
 
 /*********************************
- * PROCESSAMENTO DO PDF
+ * PROCESSAMENTO DO PDF (Jueri)
  *********************************/
 function processarPDF(blocos) {
   let encontrados = 0;
 
   for (let i = 0; i < blocos.length; i++) {
 
-    // Código (somente números, geralmente 5 ou 6 dígitos)
+    // Código do produto (somente números longos)
     if (/^\d{5,}$/.test(blocos[i])) {
       const codigo = blocos[i];
 
@@ -79,7 +80,7 @@ function processarPDF(blocos) {
 
       let j = i + 1;
 
-      // Descrição (até achar quantidade)
+      // Descrição
       while (j < blocos.length && !/^\d+$/.test(blocos[j])) {
         if (!blocos[j].includes("R$")) {
           descricao += blocos[j] + " ";
@@ -101,7 +102,6 @@ function processarPDF(blocos) {
               .replace("R$", "")
               .replace(".", "")
               .replace(",", ".")
-              .trim()
           );
           break;
         }
@@ -123,7 +123,7 @@ function processarPDF(blocos) {
 }
 
 /*********************************
- * REGISTRO DE VENDAS
+ * REGISTRAR VENDA
  *********************************/
 function adicionarVenda() {
   const codigo = document.getElementById("codigo").value.trim();
@@ -167,7 +167,7 @@ function atualizarTabela() {
 }
 
 /*********************************
- * COMISSÃO
+ * COMISSÃO (já com +5% à vista)
  *********************************/
 function calcularComissao(total) {
   let percentual = 0;
