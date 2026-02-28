@@ -31,7 +31,7 @@
   <!-- APLICAÇÃO -->
   <section id="app" class="hidden">
 
-    <!-- IMPORTAR PDF (FUTURO) -->
+    <!-- IMPORTAR PDF -->
     <h2>Importar Catálogo (PDF)</h2>
     <input type="file" id="pdfUpload" accept="application/pdf">
     <button onclick="importarPDF()">Importar Catálogo</button>
@@ -74,9 +74,14 @@
 
   </section>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-<script src="catalogo.js"></script>
-<script src="script.js"></script>
+  <!-- PDF.js (OBRIGATORIAMENTE ANTES DO SEU SCRIPT) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+  <!-- CATÁLOGO -->
+  <script src="catalogo.js"></script>
+
+  <!-- SCRIPT PRINCIPAL -->
+  <script src="script.js"></script>
 
 </body>
 </html>
