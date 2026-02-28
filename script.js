@@ -112,6 +112,40 @@ async function importarPDF() {
     }
 
     processarTextoPDF(textoCompleto);
+    function processarTextoPDF(texto) {
+  /*
+    Espera padrões como:
+    NL001 89,90
+    NL002 129.90
+  */
+
+  const linhas = texto.split(" ");
+
+  let encontrados = 0;
+
+  for (let i = 0; i < linhas.length; i++) {
+    const codigo = linhas[i];
+    const valor = linhas[i + 1];
+
+    if (codigo && valor && codigo.startsWith("NL")) {
+      const valorNumerico = parseFloat(
+        valor.replace("R$", "").replace(",", ".")
+      );
+
+      if (!isNaN(valorNumerico)) {
+        catalogo[codigo] = {
+          nome: codigo,
+          valor: valorNumerico,
+          estoque: 999,
+          foto: "https://via.placeholder.com/80"
+        };
+        encontrados++;
+      }
+    }
+  }
+
+  alert(`PDF importado com sucesso! ${encontrados} produtos carregados.`);
+}
   };
 
   reader.readAsArrayBuffer(file);
