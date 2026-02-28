@@ -1,5 +1,5 @@
 /*************************************
- * CONFIGURAÇÃO OBRIGATÓRIA PDF.js
+ * CONFIGURAÇÃO PDF.js (OBRIGATÓRIA)
  *************************************/
 if (window.pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -11,6 +11,14 @@ if (window.pdfjsLib) {
  *************************************/
 let usuarioLogado = "";
 let vendas = [];
+
+/*
+  Catálogo global
+  Será preenchido via PDF
+*/
+if (typeof catalogo === "undefined") {
+  window.catalogo = {};
+}
 
 /*************************************
  * LOGIN
@@ -35,18 +43,19 @@ function adicionarVenda() {
   const codigo = document.getElementById("codigo").value.trim();
   const qtd = parseInt(document.getElementById("quantidade").value);
 
-  if (!catalogo || !catalogo[codigo]) {
+  if (!catalogo[codigo]) {
     alert("Código não encontrado no catálogo");
     return;
   }
 
-  if (qtd > catalogo[codigo].estoque) {
-    alert("Quantidade maior que o estoque disponível");
+  if (!qtd || qtd <= 0) {
+    alert("Quantidade inválida");
     return;
   }
 
   vendas.push({
     codigo: codigo,
+    descricao: catalogo[codigo].nome,
     qtd: qtd,
     valor: catalogo[codigo].valor
   });
@@ -68,7 +77,6 @@ function atualizarTabela() {
     total += subtotal;
 
     const tr = document.createElement("tr");
-
     tr.innerHTML = `
       <td>${v.codigo}</td>
       <td>${v.qtd}</td>
@@ -84,15 +92,19 @@ function atualizarTabela() {
 
 /*************************************
  * CÁLCULO DE COMISSÃO
+ * (já inclui +5% pagamento à vista)
  *************************************/
 function calcularComissao(total) {
   let percentual = 0;
 
-  if (total > 2500) percentual = 50;
-  else if (total > 2000) percentual = 45;
-  else if (total > 1500) percentual = 40;
-  else if (total > 1000) percentual = 35;
-  else if (total > 300) percentual = 30;
+  if (total > 2500) percentual = 45;
+  else if (total > 2000) percentual = 40;
+  else if (total > 1500) percentual = 35;
+  else if (total > 1000) percentual = 30;
+  else if (total > 300) percentual = 25;
+
+  // bônus pagamento à vista
+  percentual += 5;
 
   const comissao = total * (percentual / 100);
   const fornecedor = total - comissao;
@@ -107,15 +119,17 @@ function calcularComissao(total) {
  * GERAR RELATÓRIO
  *************************************/
 function gerarRelatorio() {
-  let texto = `Relatório de Acerto\n`;
+  let texto = `RELATÓRIO DE ACERTO\n`;
   texto += `Vendedora: ${usuarioLogado}\n\n`;
 
   vendas.forEach(v => {
-    texto += `${v.codigo} | Qtd: ${v.qtd} | Total: R$ ${(v.qtd * v.valor).toFixed(2)}\n`;
+    texto += `${v.codigo} - ${v.descricao}\n`;
+    texto += `Qtd: ${v.qtd} | Total: R$ ${(v.qtd * v.valor).toFixed(2)}\n\n`;
   });
 
-  texto += `\nTotal Venda: R$ ${document.getElementById("totalVenda").innerText}`;
-  texto += `\nComissão: R$ ${document.getElementById("comissao").innerText}`;
+  texto += `TOTAL DA VENDA: R$ ${document.getElementById("totalVenda").innerText}\n`;
+  texto += `COMISSÃO: R$ ${document.getElementById("comissao").innerText}\n`;
+  texto += `VALOR FORNECEDOR: R$ ${document.getElementById("fornecedor").innerText}`;
 
   alert(texto);
 }
@@ -163,34 +177,43 @@ async function importarPDF() {
  *************************************/
 function processarTextoPDF(texto) {
   /*
-    Espera padrões como:
-    NL001 89,90
-    NL002 129.90
+    Layout esperado:
+    495987 PU Ouro Berloque Medalha São Bento 1 R$ 144,90 R$ 0,00 R$ 144,90
   */
 
-  const palavras = texto.split(/\s+/);
+  const textoLimpo = texto
+    .replace(/\n/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const regex =
+    /(\d{5,6})\s+(.+?)\s+(\d+)\s+R\$\s?(\d{1,4},\d{2})/g;
+
   let encontrados = 0;
+  let match;
 
-  for (let i = 0; i < palavras.length; i++) {
-    const codigo = palavras[i];
-    const valor = palavras[i + 1];
+  while ((match = regex.exec(textoLimpo)) !== null) {
+    const codigo = match[1];
+    const descricao = match[2].trim();
+    const valor = parseFloat(match[4].replace(",", "."));
 
-    if (codigo && valor && codigo.startsWith("NL")) {
-      const valorNumerico = parseFloat(
-        valor.replace("R$", "").replace(",", ".")
-      );
-
-      if (!isNaN(valorNumerico)) {
-        catalogo[codigo] = {
-          nome: codigo,
-          valor: valorNumerico,
-          estoque: 999,
-          foto: "https://via.placeholder.com/80"
-        };
-        encontrados++;
-      }
+    if (!catalogo[codigo]) {
+      catalogo[codigo] = {
+        nome: descricao,
+        valor: valor,
+        estoque: 999,
+        foto: "https://via.placeholder.com/80"
+      };
+      encontrados++;
     }
   }
 
-  alert(`PDF importado com sucesso! ${encontrados} produtos carregados.`);
+  if (encontrados === 0) {
+    alert(
+      "PDF importado, mas nenhum produto foi identificado.\n" +
+      "Verifique se o layout do PDF é o mesmo do catálogo padrão."
+    );
+  } else {
+    alert(`PDF importado com sucesso! ${encontrados} produtos carregados.`);
+  }
 }
