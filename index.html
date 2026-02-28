@@ -4,84 +4,88 @@
   <meta charset="UTF-8">
   <title>Nalú Semijoias | Acerto de Vendas</title>
 
-  <!-- CSS na raiz -->
+  <link rel="icon" href="favicon.ico">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- CABEÇALHO -->
-  <header>
-    <img src="logo.jpeg" alt="Nalú Semijoias">
-    <h1>Acerto de Semijoias</h1>
-  </header>
+<header class="topo">
+  <img src="logo.jpeg" alt="Nalú Semijoias">
+  <h1>Acerto de Semijoias</h1>
+</header>
 
-  <!-- LOGIN -->
-  <section id="login">
-    <h2>Login</h2>
+<section id="login" class="card">
+  <h2>Login</h2>
+  <select id="usuario">
+    <option value="">Selecione</option>
+    <option value="Naira">Naira</option>
+    <option value="Luiza">Luiza</option>
+  </select>
+  <button onclick="login()">Entrar</button>
+</section>
 
-    <select id="usuario">
-      <option value="">Selecione</option>
-      <option value="Naira">Naira</option>
-      <option value="Luiza">Luiza</option>
-    </select>
+<section id="app" class="hidden">
 
-    <button onclick="login()">Entrar</button>
-  </section>
-
-  <!-- APLICAÇÃO -->
-  <section id="app" class="hidden">
-
-    <!-- IMPORTAR PDF -->
+  <!-- IMPORTAR PDF -->
+  <section class="card">
     <h2>Importar Catálogo (PDF)</h2>
     <input type="file" id="pdfUpload" accept="application/pdf">
-    <button onclick="importarPDF()">Importar Catálogo</button>
+    <button onclick="importarPDF()">Importar PDF</button>
+    <div id="relatorioPDF"></div>
+  </section>
 
-    <!-- REGISTRAR VENDA -->
+  <!-- REGISTRAR VENDA -->
+  <section class="card">
     <h2>Registrar Venda</h2>
 
-    <div class="form">
+    <div class="grid">
       <input type="text" id="codigo" placeholder="Código da Peça">
-      <input type="number" id="quantidade" placeholder="Quantidade" value="1">
+      <input type="number" id="quantidade" value="1" min="1">
+
+      <select id="vendedoraVenda">
+        <option value="">Vendedora</option>
+        <option value="Naira">Naira</option>
+        <option value="Luiza">Luiza</option>
+      </select>
+
+      <input type="text" id="cliente" placeholder="Nome da Cliente (opcional)">
+      <input type="month" id="mesAno">
       <button onclick="adicionarVenda()">Adicionar</button>
     </div>
+  </section>
 
-    <!-- TABELA DE VENDAS -->
+  <!-- VENDAS -->
+  <section class="card">
+    <h2>Vendas Registradas</h2>
     <table>
       <thead>
         <tr>
           <th>Código</th>
           <th>Qtd</th>
-          <th>Valor Unit.</th>
+          <th>Cliente</th>
+          <th>Vendedora</th>
           <th>Total</th>
         </tr>
       </thead>
       <tbody id="listaVendas"></tbody>
     </table>
-
-    <!-- RESUMO -->
-    <div class="resumo">
-      <p><strong>Total da Venda:</strong> R$ <span id="totalVenda">0.00</span></p>
-      <p><strong>Comissão (%):</strong> <span id="percentual">0</span>%</p>
-      <p><strong>Comissão (R$):</strong> R$ <span id="comissao">0.00</span></p>
-      <p><strong>Valor a pagar fornecedor:</strong> R$ <span id="fornecedor">0.00</span></p>
-    </div>
-
-    <button onclick="gerarRelatorio()">Gerar Relatório</button>
-
-    <!-- DASHBOARD -->
-    <h2>Dashboard Mensal</h2>
-    <canvas id="dashboard"></canvas>
-
   </section>
 
-  <!-- PDF.js (OBRIGATORIAMENTE ANTES DO SEU SCRIPT) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <!-- RESUMO -->
+  <section class="card resumo">
+    <h2>Resumo Geral</h2>
+    <p>Total Geral: R$ <span id="totalVenda">0,00</span></p>
+    <p>Percentual Comissão: <span id="percentual">0</span>%</p>
+    <p>Comissão Total: R$ <span id="comissao">0,00</span></p>
+    <p>Fornecedor: R$ <span id="fornecedor">0,00</span></p>
+    <div id="resumoVendedoras"></div>
+  </section>
 
-  <!-- CATÁLOGO -->
-  <script src="catalogo.js"></script>
+</section>
 
-  <!-- SCRIPT PRINCIPAL -->
-  <script src="script.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="catalogo.js"></script>
+<script src="script.js"></script>
 
 </body>
 </html>
