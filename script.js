@@ -1,21 +1,18 @@
+
 let usuarioLogado = "";
 let vendas = [];
-let catalogo = {
-  "A001": 120,
-  "A002": 95,
-  "A003": 150
-};
 
 function login() {
   const user = document.getElementById("usuario").value;
   if (!user) return alert("Selecione o usuário");
+
   usuarioLogado = user;
   document.getElementById("login").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
 }
 
 function adicionarVenda() {
-  const codigo = document.getElementById("codigo").value;
+  const codigo = document.getElementById("codigo").value.trim();
   const qtd = parseInt(document.getElementById("quantidade").value);
 
   if (!catalogo[codigo]) {
@@ -23,10 +20,15 @@ function adicionarVenda() {
     return;
   }
 
+  if (qtd > catalogo[codigo].estoque) {
+    alert("Quantidade maior que o estoque disponível");
+    return;
+  }
+
   vendas.push({
     codigo,
     qtd,
-    valor: catalogo[codigo]
+    valor: catalogo[codigo].valor
   });
 
   atualizarTabela();
@@ -46,8 +48,8 @@ function atualizarTabela() {
       <tr>
         <td>${v.codigo}</td>
         <td>${v.qtd}</td>
-        <td>${v.valor.toFixed(2)}</td>
-        <td>${subtotal.toFixed(2)}</td>
+        <td>R$ ${v.valor.toFixed(2)}</td>
+        <td>R$ ${subtotal.toFixed(2)}</td>
       </tr>
     `;
   });
@@ -74,15 +76,14 @@ function calcularComissao(total) {
 }
 
 function gerarRelatorio() {
-  let texto = `Relatório de Acerto - ${usuarioLogado}\n\n`;
+  let texto = `Relatório de Acerto\nVendedora: ${usuarioLogado}\n\n`;
 
   vendas.forEach(v => {
-    texto += `Código: ${v.codigo} | Qtd: ${v.qtd} | Total: R$ ${(v.qtd * v.valor).toFixed(2)}\n`;
+    texto += `${v.codigo} | Qtd: ${v.qtd} | Total: R$ ${(v.qtd * v.valor).toFixed(2)}\n`;
   });
 
   texto += `\nTotal Venda: R$ ${document.getElementById("totalVenda").innerText}`;
   texto += `\nComissão: R$ ${document.getElementById("comissao").innerText}`;
-  texto += `\nFornecedor: R$ ${document.getElementById("fornecedor").innerText}`;
 
   alert(texto);
 }
