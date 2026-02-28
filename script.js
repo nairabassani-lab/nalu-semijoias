@@ -87,3 +87,32 @@ function gerarRelatorio() {
 
   alert(texto);
 }
+async function importarPDF() {
+  const fileInput = document.getElementById("pdfUpload");
+  const file = fileInput.files[0];
+
+  if (!file) {
+    alert("Selecione um PDF primeiro");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = async function () {
+    const typedarray = new Uint8Array(this.result);
+    const pdf = await pdfjsLib.getDocument(typedarray).promise;
+
+    let textoCompleto = "";
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const strings = content.items.map(item => item.str);
+      textoCompleto += strings.join(" ") + " ";
+    }
+
+    processarTextoPDF(textoCompleto);
+  };
+
+  reader.readAsArrayBuffer(file);
+}
