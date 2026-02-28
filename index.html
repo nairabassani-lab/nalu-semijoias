@@ -3,18 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <title>Nalú Semijoias | Acerto de Vendas</title>
-
-  <link rel="icon" href="favicon.ico">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header class="topo">
+<header>
   <img src="logo.jpeg" alt="Nalú Semijoias">
   <h1>Acerto de Semijoias</h1>
 </header>
 
-<section id="login" class="card">
+<section id="login">
   <h2>Login</h2>
   <select id="usuario">
     <option value="">Selecione</option>
@@ -26,66 +24,47 @@
 
 <section id="app" class="hidden">
 
-  <!-- IMPORTAR PDF -->
-  <section class="card">
-    <h2>Importar Catálogo (PDF)</h2>
-    <input type="file" id="pdfUpload" accept="application/pdf">
-    <button onclick="importarPDF()">Importar PDF</button>
-    <div id="relatorioPDF"></div>
-  </section>
+  <h2>Importar Catálogo (PDF)</h2>
+  <input type="file" id="pdfUpload" accept="application/pdf">
+  <button onclick="importarPDF()">Importar</button>
 
-  <!-- REGISTRAR VENDA -->
-  <section class="card">
-    <h2>Registrar Venda</h2>
+  <div id="relatorioPDF"></div>
 
-    <div class="grid">
-      <input type="text" id="codigo" placeholder="Código da Peça">
-      <input type="number" id="quantidade" value="1" min="1">
+  <h2>Registrar Venda</h2>
+  <div class="form">
+    <input id="codigo" placeholder="Código">
+    <input id="quantidade" type="number" value="1">
+    <select id="vendedora">
+      <option>Naira</option>
+      <option>Luiza</option>
+    </select>
+    <input id="cliente" placeholder="Cliente (opcional)">
+    <button onclick="adicionarVenda()">Adicionar</button>
+  </div>
 
-      <select id="vendedoraVenda">
-        <option value="">Vendedora</option>
-        <option value="Naira">Naira</option>
-        <option value="Luiza">Luiza</option>
-      </select>
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Qtd</th>
+        <th>Cliente</th>
+        <th>Vendedora</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody id="listaVendas"></tbody>
+  </table>
 
-      <input type="text" id="cliente" placeholder="Nome da Cliente (opcional)">
-      <input type="month" id="mesAno">
-      <button onclick="adicionarVenda()">Adicionar</button>
-    </div>
-  </section>
-
-  <!-- VENDAS -->
-  <section class="card">
-    <h2>Vendas Registradas</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Código</th>
-          <th>Qtd</th>
-          <th>Cliente</th>
-          <th>Vendedora</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody id="listaVendas"></tbody>
-    </table>
-  </section>
-
-  <!-- RESUMO -->
-  <section class="card resumo">
-    <h2>Resumo Geral</h2>
-    <p>Total Geral: R$ <span id="totalVenda">0,00</span></p>
-    <p>Percentual Comissão: <span id="percentual">0</span>%</p>
-    <p>Comissão Total: R$ <span id="comissao">0,00</span></p>
-    <p>Fornecedor: R$ <span id="fornecedor">0,00</span></p>
-    <div id="resumoVendedoras"></div>
-  </section>
+  <div class="resumo">
+    <p>Total Geral: R$ <span id="totalGeral">0.00</span></p>
+    <p>Comissão Total: R$ <span id="comissaoTotal">0.00</span></p>
+    <p>Naira: R$ <span id="comissaoNaira">0.00</span></p>
+    <p>Luiza: R$ <span id="comissaoLuiza">0.00</span></p>
+  </div>
 
 </section>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-<script src="catalogo.js"></script>
 <script src="script.js"></script>
-
 </body>
 </html>
