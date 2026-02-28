@@ -1,46 +1,32 @@
-/***********************
- * CONFIG PDF.JS
- ***********************/
+/********************************
+ * PDF.JS CONFIG
+ ********************************/
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 
-/***********************
- * CONTROLE DE MÊS / ANO
- ***********************/
+/********************************
+ * DATA / MÊS / ANO
+ ********************************/
 const hoje = new Date();
 const MES = String(hoje.getMonth() + 1).padStart(2, "0");
 const ANO = hoje.getFullYear();
 
-const CHAVE_ESTOQUE = `estoque_${ANO}_${MES}`;
-const CHAVE_VENDAS = `vendas_${ANO}_${MES}`;
+const KEY_ESTOQUE = `estoque_${ANO}_${MES}`;
+const KEY_VENDAS = `vendas_${ANO}_${MES}`;
 
-/***********************
+/********************************
  * DADOS
- ***********************/
-let estoque = JSON.parse(localStorage.getItem(CHAVE_ESTOQUE)) || [];
-let vendas = JSON.parse(localStorage.getItem(CHAVE_VENDAS)) || [];
+ ********************************/
+let estoque = JSON.parse(localStorage.getItem(KEY_ESTOQUE)) || [];
+let vendas = JSON.parse(localStorage.getItem(KEY_VENDAS)) || [];
 
-/***********************
- * ABAS
- ***********************/
-function abrirAba(id) {
-  document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
-  document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
-
-  document.getElementById(id).classList.add("active");
-  event.target.classList.add("active");
-
-  if (id === "vendas") atualizarTabelaVendas();
-  if (id === "fechamento") atualizarResumo();
-}
-
-/***********************
- * IMPORTAÇÃO PDF
- ***********************/
+/********************************
+ * IMPORTAR PDF
+ ********************************/
 async function importarPDF() {
   const file = document.getElementById("pdfUpload").files[0];
   if (!file) {
-    alert("Selecione um PDF");
+    alert("Selecione o PDF");
     return;
   }
 
@@ -48,40 +34,61 @@ async function importarPDF() {
 
   reader.onload = async function () {
     const pdf = await pdfjsLib.getDocument({ data: reader.result }).promise;
-
     let blocos = [];
 
     for (let p = 1; p <= pdf.numPages; p++) {
       const page = await pdf.getPage(p);
       const content = await page.getTextContent();
-      content.items.forEach(i => blocos.push(i.str.trim()));
+      content.items.forEach(i => {
+        const t = i.str.trim();
+        if (t) blocos.push(t);
+      });
     }
 
-    processarBlocosPDF(blocos);
+    processarPDF(blocos);
   };
 
   reader.readAsArrayBuffer(file);
 }
 
-/***********************
- * PROCESSAMENTO REAL
- ***********************/
-function processarBlocosPDF(blocos) {
+/********************************
+ * PROCESSAMENTO REAL DO PDF
+ ********************************/
+function processarPDF(blocos) {
   let itens = [];
   let i = 0;
 
   while (i < blocos.length) {
-    const texto = blocos[i];
+    const atual = blocos[i];
 
-    // CÓDIGO = 5 ou 6 dígitos
-    if (/^\d{5,6}$/.test(texto)) {
-      let codigo = texto;
+    // CÓDIGO (5 ou 6 dígitos)
+    if (/^\d{5,6}$/.test(atual)) {
+      let codigo = atual;
+      let quantidade = 1;
       let valor = null;
 
-      // procurar valor monetário depois do código
-      for (let j = i + 1; j < i + 20 && j < blocos.length; j++) {
-        if (/^\d+,\d{2}$/.test(blocos[j])) {
-          valor = parseFloat(blocos[j].replace(",", "."));
+      // procurar quantidade e valor nos próximos blocos
+      for (let j = i + 1; j < i + 25 && j < blocos.length; j++) {
+        // quantidade (normalmente 1 ou 2)
+        if (/^[1-9]$/.test(blocos[j])) {
+          quantidade = parseInt(blocos[j]);
+        }
+
+        // valor precedido por R$
+        if (
+          blocos[j] === "R$" &&
+          j + 1 < blocos.length &&
+          /^\d+,\d{2}$/.test(blocos[j + 1])
+        ) {
+          valor = parseFloat(blocos[j + 1].replace(",", "."));
+          break;
+        }
+
+        // valor já junto
+        if (/^R\$\s*\d+,\d{2}$/.test(blocos[j])) {
+          valor = parseFloat(
+            blocos[j].replace("R$", "").trim().replace(",", ".")
+          );
           break;
         }
       }
@@ -89,8 +96,8 @@ function processarBlocosPDF(blocos) {
       if (valor !== null) {
         itens.push({
           codigo,
-          valor,
-          quantidade: 1
+          quantidade,
+          valor
         });
       }
     }
@@ -99,37 +106,19 @@ function processarBlocosPDF(blocos) {
   }
 
   if (itens.length === 0) {
-    document.getElementById("statusImportacao").innerText =
-      "PDF importado, mas nenhum item identificado.";
+    alert("PDF importado, mas nenhum item identificado.");
     return;
   }
 
   estoque = itens;
-  localStorage.setItem(CHAVE_ESTOQUE, JSON.stringify(estoque));
+  localStorage.setItem(KEY_ESTOQUE, JSON.stringify(estoque));
 
-  document.getElementById("statusImportacao").innerText =
-    `PDF importado com sucesso! ${itens.length} peças carregadas.`;
-
-  atualizarHistoricoImportacoes();
+  alert(`PDF importado com sucesso! ${itens.length} itens carregados.`);
 }
 
-/***********************
- * HISTÓRICO
- ***********************/
-function atualizarHistoricoImportacoes() {
-  const ul = document.getElementById("historicoImportacoes");
-  ul.innerHTML = "";
-
-  estoque.forEach(i => {
-    const li = document.createElement("li");
-    li.innerText = `Código ${i.codigo} — R$ ${i.valor.toFixed(2)}`;
-    ul.appendChild(li);
-  });
-}
-
-/***********************
- * VENDAS
- ***********************/
+/********************************
+ * REGISTRAR VENDA
+ ********************************/
 function registrarVenda() {
   const codigo = document.getElementById("codigoVenda").value.trim();
   const qtd = Number(document.getElementById("quantidadeVenda").value);
@@ -150,41 +139,13 @@ function registrarVenda() {
     valor: item.valor
   });
 
-  localStorage.setItem(CHAVE_VENDAS, JSON.stringify(vendas));
-  atualizarTabelaVendas();
+  localStorage.setItem(KEY_VENDAS, JSON.stringify(vendas));
+  atualizarResumo();
 }
 
-/***********************
- * TABELA
- ***********************/
-function atualizarTabelaVendas() {
-  const tbody = document.getElementById("tabelaVendas");
-  tbody.innerHTML = "";
-
-  vendas.forEach((v, index) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${v.codigo}</td>
-      <td>${v.qtd}</td>
-      <td>${v.vendedora}</td>
-      <td contenteditable="true"
-          onblur="editarCliente(${index}, this.innerText)">
-        ${v.cliente || ""}
-      </td>
-      <td>R$ ${(v.valor * v.qtd).toFixed(2)}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function editarCliente(index, valor) {
-  vendas[index].cliente = valor;
-  localStorage.setItem(CHAVE_VENDAS, JSON.stringify(vendas));
-}
-
-/***********************
- * FECHAMENTO
- ***********************/
+/********************************
+ * FECHAMENTO / COMISSÕES
+ ********************************/
 function atualizarResumo() {
   let total = vendas.reduce((s, v) => s + v.valor * v.qtd, 0);
 
@@ -216,15 +177,3 @@ function atualizarResumo() {
   document.getElementById("acertoFornecedor").innerText =
     (total - comissaoTotal).toFixed(2);
 }
-
-/***********************
- * PDF FINAL
- ***********************/
-function gerarPDF() {
-  window.print();
-}
-
-/***********************
- * INIT
- ***********************/
-atualizarHistoricoImportacoes();
