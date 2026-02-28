@@ -2,69 +2,160 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Nalú Semijoias | Acerto de Vendas</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Nalú Semijoias | Gestão de Consignação</title>
+
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f6fa;
+      margin: 0;
+    }
+
+    header {
+      background: #111827;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+    }
+
+    nav {
+      display: flex;
+      background: #1f2933;
+    }
+
+    nav button {
+      flex: 1;
+      padding: 15px;
+      background: none;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    nav button.active {
+      background: #374151;
+    }
+
+    section {
+      display: none;
+      padding: 20px;
+    }
+
+    section.active {
+      display: block;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    input, select, button {
+      padding: 8px;
+      margin: 5px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background: #e5e7eb;
+    }
+
+    .resumo {
+      background: #fff;
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 6px;
+    }
+  </style>
 </head>
 <body>
 
 <header>
-  <img src="logo.jpeg" alt="Nalú Semijoias">
-  <h1>Acerto de Semijoias</h1>
+  <h1>Nalú Semijoias</h1>
+  <p>Sistema de Acerto de Consignação</p>
 </header>
 
-<section id="login">
-  <h2>Login</h2>
-  <select id="usuario">
-    <option value="">Selecione</option>
-    <option value="Naira">Naira</option>
-    <option value="Luiza">Luiza</option>
-  </select>
-  <button onclick="login()">Entrar</button>
+<nav>
+  <button onclick="abrirAba('importacoes')" class="active">Importações</button>
+  <button onclick="abrirAba('vendas')">Vendas</button>
+  <button onclick="abrirAba('fechamento')">Fechamento</button>
+</nav>
+
+<!-- IMPORTAÇÕES -->
+<section id="importacoes" class="active">
+  <h2>Importar Estoque (PDF)</h2>
+
+  <input type="file" id="pdfUpload" accept="application/pdf">
+  <button onclick="importarPDF()">Importar PDF</button>
+
+  <p id="statusImportacao"></p>
+
+  <h3>Histórico do mês</h3>
+  <ul id="historicoImportacoes"></ul>
 </section>
 
-<section id="app" class="hidden">
-
-  <h2>Importar Catálogo (PDF)</h2>
-  <input type="file" id="pdfUpload" accept="application/pdf">
-  <button onclick="importarPDF()">Importar</button>
-
-  <div id="relatorioPDF"></div>
-
+<!-- VENDAS -->
+<section id="vendas">
   <h2>Registrar Venda</h2>
-  <div class="form">
-    <input id="codigo" placeholder="Código">
-    <input id="quantidade" type="number" value="1">
-    <select id="vendedora">
-      <option>Naira</option>
-      <option>Luiza</option>
-    </select>
-    <input id="cliente" placeholder="Cliente (opcional)">
-    <button onclick="adicionarVenda()">Adicionar</button>
-  </div>
+
+  <input type="text" id="codigoVenda" placeholder="Código da peça">
+  <input type="number" id="quantidadeVenda" value="1">
+  <select id="vendedoraVenda">
+    <option value="">Vendedora</option>
+    <option>Naira</option>
+    <option>Luiza</option>
+  </select>
+  <input type="text" id="clienteVenda" placeholder="Nome da cliente (opcional)">
+  <button onclick="registrarVenda()">Adicionar</button>
 
   <table>
     <thead>
       <tr>
         <th>Código</th>
         <th>Qtd</th>
-        <th>Cliente</th>
         <th>Vendedora</th>
-        <th>Total</th>
+        <th>Cliente</th>
+        <th>Valor</th>
       </tr>
     </thead>
-    <tbody id="listaVendas"></tbody>
+    <tbody id="tabelaVendas"></tbody>
   </table>
-
-  <div class="resumo">
-    <p>Total Geral: R$ <span id="totalGeral">0.00</span></p>
-    <p>Comissão Total: R$ <span id="comissaoTotal">0.00</span></p>
-    <p>Naira: R$ <span id="comissaoNaira">0.00</span></p>
-    <p>Luiza: R$ <span id="comissaoLuiza">0.00</span></p>
-  </div>
-
 </section>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<!-- FECHAMENTO -->
+<section id="fechamento">
+  <h2>Fechamento do Mês</h2>
+
+  <div class="resumo">
+    <p><strong>Total Geral:</strong> R$ <span id="totalGeral">0.00</span></p>
+    <p><strong>Comissão Total:</strong> R$ <span id="comissaoTotal">0.00</span></p>
+    <p><strong>% Comissão:</strong> <span id="percentualComissao">0</span>%</p>
+
+    <p><strong>Naira:</strong> R$ <span id="comissaoNaira">0.00</span></p>
+    <p><strong>Luiza:</strong> R$ <span id="comissaoLuiza">0.00</span></p>
+
+    <hr>
+
+    <p><strong>Valor Acerto Ágata:</strong> R$ <span id="acertoFornecedor">0.00</span></p>
+  </div>
+
+  <button onclick="gerarPDF()">Gerar Relatório PDF</button>
+</section>
+
 <script src="script.js"></script>
 </body>
 </html>
