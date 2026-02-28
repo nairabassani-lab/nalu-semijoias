@@ -1,19 +1,19 @@
-/***********************
- * CONFIGURAÇÃO PDF.JS
- ***********************/
+/*********************************
+ * CONFIGURAÇÃO PDF.JS (VERSÃO 2)
+ *********************************/
 pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 
-/***********************
+/*********************************
  * VARIÁVEIS GLOBAIS
- ***********************/
+ *********************************/
 let usuarioLogado = "";
 let vendas = [];
 let catalogo = {};
 
-/***********************
+/*********************************
  * LOGIN
- ***********************/
+ *********************************/
 function login() {
   const user = document.getElementById("usuario").value;
   if (!user) return alert("Selecione o usuário");
@@ -23,9 +23,9 @@ function login() {
   document.getElementById("app").classList.remove("hidden");
 }
 
-/***********************
+/*********************************
  * IMPORTAR PDF
- ***********************/
+ *********************************/
 async function importarPDF() {
   const fileInput = document.getElementById("pdfUpload");
   const file = fileInput.files[0];
@@ -39,36 +39,39 @@ async function importarPDF() {
 
   reader.onload = async function () {
     const typedarray = new Uint8Array(this.result);
-    const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
 
-    let itens = [];
+    const pdf = await pdfjsLib.getDocument(typedarray).promise;
 
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
+    let blocos = [];
+
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
       const content = await page.getTextContent();
 
-      const linhas = content.items.map(item => item.str).filter(t => t.trim() !== "");
+      const textos = content.items
+        .map(i => i.str.trim())
+        .filter(t => t !== "");
 
-      itens = itens.concat(linhas);
+      blocos = blocos.concat(textos);
     }
 
-    processarItensPDF(itens);
+    processarPDF(blocos);
   };
 
   reader.readAsArrayBuffer(file);
 }
 
-/***********************
- * PROCESSA O PDF
- ***********************/
-function processarItensPDF(itens) {
+/*********************************
+ * PROCESSAMENTO DO PDF
+ *********************************/
+function processarPDF(blocos) {
   let encontrados = 0;
 
-  for (let i = 0; i < itens.length; i++) {
+  for (let i = 0; i < blocos.length; i++) {
 
-    // Código é sempre numérico (ex: 495987)
-    if (/^\d{5,}$/.test(itens[i])) {
-      const codigo = itens[i];
+    // Código (somente números, geralmente 5 ou 6 dígitos)
+    if (/^\d{5,}$/.test(blocos[i])) {
+      const codigo = blocos[i];
 
       let descricao = "";
       let quantidade = 0;
@@ -76,37 +79,40 @@ function processarItensPDF(itens) {
 
       let j = i + 1;
 
-      // Junta descrição até achar quantidade
-      while (j < itens.length && !/^\d+$/.test(itens[j])) {
-        if (!itens[j].includes("R$")) {
-          descricao += itens[j] + " ";
+      // Descrição (até achar quantidade)
+      while (j < blocos.length && !/^\d+$/.test(blocos[j])) {
+        if (!blocos[j].includes("R$")) {
+          descricao += blocos[j] + " ";
         }
         j++;
       }
 
       // Quantidade
-      if (/^\d+$/.test(itens[j])) {
-        quantidade = parseInt(itens[j]);
+      if (/^\d+$/.test(blocos[j])) {
+        quantidade = parseInt(blocos[j]);
         j++;
       }
 
-      // Procura o primeiro valor monetário após a quantidade
-      while (j < itens.length) {
-        if (itens[j].includes("R$")) {
+      // Valor unitário
+      while (j < blocos.length) {
+        if (blocos[j].includes("R$")) {
           valorUnitario = parseFloat(
-            itens[j].replace("R$", "").replace(".", "").replace(",", ".").trim()
+            blocos[j]
+              .replace("R$", "")
+              .replace(".", "")
+              .replace(",", ".")
+              .trim()
           );
           break;
         }
         j++;
       }
 
-      if (valorUnitario > 0) {
+      if (!isNaN(valorUnitario) && valorUnitario > 0) {
         catalogo[codigo] = {
           nome: descricao.trim(),
           valor: valorUnitario,
-          estoque: 999,
-          foto: "https://via.placeholder.com/80"
+          estoque: 999
         };
         encontrados++;
       }
@@ -116,9 +122,9 @@ function processarItensPDF(itens) {
   alert(`PDF importado com sucesso! ${encontrados} produtos carregados.`);
 }
 
-/***********************
- * VENDAS
- ***********************/
+/*********************************
+ * REGISTRO DE VENDAS
+ *********************************/
 function adicionarVenda() {
   const codigo = document.getElementById("codigo").value.trim();
   const qtd = parseInt(document.getElementById("quantidade").value);
@@ -160,9 +166,9 @@ function atualizarTabela() {
   calcularComissao(total);
 }
 
-/***********************
+/*********************************
  * COMISSÃO
- ***********************/
+ *********************************/
 function calcularComissao(total) {
   let percentual = 0;
 
@@ -181,9 +187,9 @@ function calcularComissao(total) {
   document.getElementById("fornecedor").innerText = fornecedor.toFixed(2);
 }
 
-/***********************
+/*********************************
  * RELATÓRIO
- ***********************/
+ *********************************/
 function gerarRelatorio() {
   let texto = `Relatório de Acerto\nVendedora: ${usuarioLogado}\n\n`;
 
