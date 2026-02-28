@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Nalú Semijoias | Acerto de Vendas</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <img src="assets/logo.png" alt="Nalú Semijoias">
+  <h1>Acerto de Semijoias</h1>
+</header>
+
+<section id="login">
+  <h2>Login</h2>
+  <select id="usuario">
+    <option value="">Selecione</option>
+    <option value="Naira">Naira</option>
+    <option value="Luiza">Luiza</option>
+  </select>
+  <button onclick="login()">Entrar</button>
+</section>
+
+<section id="app" class="hidden">
+
+  <h2>Importar Catálogo (PDF)</h2>
+  <input type="file" id="pdfUpload" accept="application/pdf">
+
+  <h2>Registrar Venda</h2>
+
+  <div class="form">
+    <input type="text" id="codigo" placeholder="Código da Peça">
+    <input type="number" id="quantidade" placeholder="Quantidade" value="1">
+    <button onclick="adicionarVenda()">Adicionar</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Qtd</th>
+        <th>Valor Unit.</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody id="listaVendas"></tbody>
+  </table>
+
+  <div class="resumo">
+    <p>Total da Venda: R$ <span id="totalVenda">0.00</span></p>
+    <p>Comissão (%): <span id="percentual">0</span>%</p>
+    <p>Comissão (R$): <span id="comissao">0.00</span></p>
+    <p>Valor a pagar fornecedor: R$ <span id="fornecedor">0.00</span></p>
+  </div>
+
+  <button onclick="gerarRelatorio()">Gerar Relatório</button>
+
+  <h2>Dashboard Mensal</h2>
+  <canvas id="dashboard"></canvas>
+
+</section>
+
+<script src="js/app.js"></script>
+</body>
+</html>
