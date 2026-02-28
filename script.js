@@ -1,204 +1,163 @@
-/*********************************
- * CONFIGURAÇÃO PDF.JS
- *********************************/
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 
-/*********************************
- * VARIÁVEIS GLOBAIS
- *********************************/
 let usuarioLogado = "";
 let vendas = [];
+let estoqueRecebido = {};
 
-// ⚠️ NÃO declaramos catalogo aqui
-// ele já vem do catalogo.js
-
-/*********************************
- * LOGIN
- *********************************/
 function login() {
   const user = document.getElementById("usuario").value;
   if (!user) return alert("Selecione o usuário");
-
   usuarioLogado = user;
   document.getElementById("login").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
 }
 
-/*********************************
- * IMPORTAR PDF
- *********************************/
-async function importarPDF() {
-  const fileInput = document.getElementById("pdfUpload");
-  const file = fileInput.files[0];
-
-  if (!file) {
-    alert("Selecione um PDF primeiro");
-    return;
-  }
-
-  const reader = new FileReader();
-
-  reader.onload = async function () {
-    const typedarray = new Uint8Array(this.result);
-    const pdf = await pdfjsLib.getDocument(typedarray).promise;
-
-    let blocos = [];
-
-    for (let p = 1; p <= pdf.numPages; p++) {
-      const page = await pdf.getPage(p);
-      const content = await page.getTextContent();
-
-      const textos = content.items
-        .map(i => i.str.trim())
-        .filter(t => t !== "");
-
-      blocos = blocos.concat(textos);
-    }
-
-    processarPDF(blocos);
-  };
-
-  reader.readAsArrayBuffer(file);
-}
-
-/*********************************
- * PROCESSAMENTO DO PDF (Jueri)
- *********************************/
-function processarPDF(blocos) {
-  let encontrados = 0;
-
-  for (let i = 0; i < blocos.length; i++) {
-
-    // Código do produto (somente números longos)
-    if (/^\d{5,}$/.test(blocos[i])) {
-      const codigo = blocos[i];
-
-      let descricao = "";
-      let quantidade = 0;
-      let valorUnitario = 0;
-
-      let j = i + 1;
-
-      // Descrição
-      while (j < blocos.length && !/^\d+$/.test(blocos[j])) {
-        if (!blocos[j].includes("R$")) {
-          descricao += blocos[j] + " ";
-        }
-        j++;
-      }
-
-      // Quantidade
-      if (/^\d+$/.test(blocos[j])) {
-        quantidade = parseInt(blocos[j]);
-        j++;
-      }
-
-      // Valor unitário
-      while (j < blocos.length) {
-        if (blocos[j].includes("R$")) {
-          valorUnitario = parseFloat(
-            blocos[j]
-              .replace("R$", "")
-              .replace(".", "")
-              .replace(",", ".")
-          );
-          break;
-        }
-        j++;
-      }
-
-      if (!isNaN(valorUnitario) && valorUnitario > 0) {
-        catalogo[codigo] = {
-          nome: descricao.trim(),
-          valor: valorUnitario,
-          estoque: 999
-        };
-        encontrados++;
-      }
-    }
-  }
-
-  alert(`PDF importado com sucesso! ${encontrados} produtos carregados.`);
-}
-
-/*********************************
- * REGISTRAR VENDA
- *********************************/
 function adicionarVenda() {
-  const codigo = document.getElementById("codigo").value.trim();
-  const qtd = parseInt(document.getElementById("quantidade").value);
+  const codigo = codigoEl().value.trim();
+  const qtd = Number(qtdEl().value);
+  const vendedora = vendEl().value;
+  const cliente = clienteEl().value;
+  const mesAno = mesAnoEl().value;
 
-  if (!catalogo[codigo]) {
-    alert("Código não encontrado no catálogo");
-    return;
-  }
+  if (!codigo || !qtd || !vendedora || !mesAno)
+    return alert("Preencha código, quantidade, vendedora e mês");
+
+  if (!catalogo[codigo]) return alert("Código não encontrado");
 
   vendas.push({
     codigo,
     qtd,
-    valor: catalogo[codigo].valor
+    valor: catalogo[codigo].valor,
+    vendedora,
+    cliente,
+    mesAno
   });
 
   atualizarTabela();
+  limparCampos();
 }
 
 function atualizarTabela() {
   const tbody = document.getElementById("listaVendas");
   tbody.innerHTML = "";
 
-  let total = 0;
+  let totalGeral = 0;
+  let porVendedora = { Naira: 0, Luiza: 0 };
 
-  vendas.forEach(v => {
+  vendas.forEach((v, i) => {
     const subtotal = v.qtd * v.valor;
-    total += subtotal;
+    totalGeral += subtotal;
+    porVendedora[v.vendedora] += subtotal;
 
     tbody.innerHTML += `
       <tr>
         <td>${v.codigo}</td>
         <td>${v.qtd}</td>
-        <td>R$ ${v.valor.toFixed(2)}</td>
+        <td contenteditable onblur="editarCliente(${i}, this.innerText)">
+          ${v.cliente || ""}
+        </td>
+        <td>${v.vendedora}</td>
         <td>R$ ${subtotal.toFixed(2)}</td>
-      </tr>
-    `;
+      </tr>`;
   });
 
-  calcularComissao(total);
+  calcularComissao(totalGeral, porVendedora);
 }
 
-/*********************************
- * COMISSÃO (já com +5% à vista)
- *********************************/
-function calcularComissao(total) {
-  let percentual = 0;
-
-  if (total > 2500) percentual = 50;
-  else if (total > 2000) percentual = 45;
-  else if (total > 1500) percentual = 40;
-  else if (total > 1000) percentual = 35;
-  else if (total > 300) percentual = 30;
-
-  const comissao = total * (percentual / 100);
-  const fornecedor = total - comissao;
-
-  document.getElementById("totalVenda").innerText = total.toFixed(2);
-  document.getElementById("percentual").innerText = percentual;
-  document.getElementById("comissao").innerText = comissao.toFixed(2);
-  document.getElementById("fornecedor").innerText = fornecedor.toFixed(2);
+function calcularPercentual(total) {
+  if (total > 2500) return 50;
+  if (total > 2000) return 45;
+  if (total > 1500) return 40;
+  if (total > 1000) return 35;
+  if (total > 300) return 30;
+  return 0;
 }
 
-/*********************************
- * RELATÓRIO
- *********************************/
-function gerarRelatorio() {
-  let texto = `Relatório de Acerto\nVendedora: ${usuarioLogado}\n\n`;
+function calcularComissao(total, porVendedora) {
+  const percentual = calcularPercentual(total);
+  let totalComissao = 0;
 
-  vendas.forEach(v => {
-    texto += `${v.codigo} | Qtd: ${v.qtd} | Total: R$ ${(v.qtd * v.valor).toFixed(2)}\n`;
-  });
+  let resumoHTML = "<h3>Comissão por Vendedora</h3>";
 
-  texto += `\nTotal Venda: R$ ${document.getElementById("totalVenda").innerText}`;
-  texto += `\nComissão: R$ ${document.getElementById("comissao").innerText}`;
+  for (let v in porVendedora) {
+    const com = porVendedora[v] * (percentual / 100);
+    totalComissao += com;
+    resumoHTML += `<p>${v}: R$ ${porVendedora[v].toFixed(2)} | Comissão: R$ ${com.toFixed(2)}</p>`;
+  }
 
-  alert(texto);
+  totalVendaEl().innerText = total.toFixed(2);
+  percentualEl().innerText = percentual;
+  comissaoEl().innerText = totalComissao.toFixed(2);
+  fornecedorEl().innerText = (total - totalComissao).toFixed(2);
+  document.getElementById("resumoVendedoras").innerHTML = resumoHTML;
+}
+
+async function importarPDF() {
+  const file = document.getElementById("pdfUpload").files[0];
+  if (!file) return alert("Selecione um PDF");
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const pdf = await pdfjsLib.getDocument(new Uint8Array(reader.result)).promise;
+    let encontrados = 0;
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const text = await page.getTextContent();
+      const linhas = text.items.map(i => i.str).join(" ");
+
+      const regex = /(\d{5,6}).*?(\d+)\sR\$\s([\d.,]+)/g;
+      let match;
+
+      while ((match = regex.exec(linhas)) !== null) {
+        const codigo = match[1];
+        const qtd = Number(match[2]);
+        const valor = Number(match[3].replace(".", "").replace(",", "."));
+
+        catalogo[codigo] = { valor };
+        estoqueRecebido[codigo] = (estoqueRecebido[codigo] || 0) + qtd;
+        encontrados++;
+      }
+    }
+
+    mostrarRelatorioPDF();
+    alert(`PDF importado com sucesso! ${encontrados} itens processados.`);
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+
+function mostrarRelatorioPDF() {
+  let html = "<h3>Relatório de Estoque (PDF)</h3><ul>";
+  for (let c in estoqueRecebido) {
+    const vendido = vendas
+      .filter(v => v.codigo === c)
+      .reduce((s, v) => s + v.qtd, 0);
+    html += `<li>${c} | Recebido: ${estoqueRecebido[c]} | Vendido: ${vendido}</li>`;
+  }
+  html += "</ul>";
+  document.getElementById("relatorioPDF").innerHTML = html;
+}
+
+/* UTIL */
+const codigoEl = () => document.getElementById("codigo");
+const qtdEl = () => document.getElementById("quantidade");
+const vendEl = () => document.getElementById("vendedoraVenda");
+const clienteEl = () => document.getElementById("cliente");
+const mesAnoEl = () => document.getElementById("mesAno");
+const totalVendaEl = () => document.getElementById("totalVenda");
+const percentualEl = () => document.getElementById("percentual");
+const comissaoEl = () => document.getElementById("comissao");
+const fornecedorEl = () => document.getElementById("fornecedor");
+
+function editarCliente(index, valor) {
+  vendas[index].cliente = valor;
+}
+
+function limparCampos() {
+  codigoEl().value = "";
+  qtdEl().value = 1;
+  vendEl().value = "";
+  clienteEl().value = "";
 }
